@@ -1,0 +1,50 @@
+{{ ansible_managed | comment }}
+
+global
+    log         127.0.0.1 local0
+
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        haproxy
+    group       haproxy
+    daemon
+
+    stats socket /var/lib/haproxy/stats
+
+    ssl-default-bind-ciphers PROFILE=SYSTEM
+    ssl-default-server-ciphers PROFILE=SYSTEM
+
+defaults
+    mode                    http
+    log                     global
+    option                  httplog
+    option                  dontlognull
+    option http-server-close
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+    timeout http-keep-alive 10s
+    timeout check           10s
+    maxconn                 3000
+
+frontend http_front
+    mode http
+    bind *:80
+    filter spoe engine modsecurity config /etc/haproxy/spoe-modsecurity.conf
+    http-request deny if { var(txn.modsec.code) -m int gt 0 }
+    default_backend http_back
+
+backend spoe-modsecurity
+    mode tcp
+    timeout connect 5s
+    timeout server  5s
+    server modsec-spoa1 127.0.0.1:12345
+
+backend http_back
+    mode http
+    server server1 127.0.0.1:8090 check

@@ -1,0 +1,73 @@
+---
+- hosts: local_test
+  gather_facts: false
+  become: true
+  tasks:
+    - name: install python packages
+      raw: dnf install python3 telnet -y ; python3 -m pip install requests
+      changed_when: false
+
+    - name: disable selinux 
+      selinux:
+        state: disabled
+      register: disable_se
+
+    - name: reboot when selinux has been disabled
+      reboot:
+      when: disable_se.changed
+
+    - name: enable docker-ce repo
+      shell: dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+      changed_when: false
+
+    - name: install haproxy, nginx and docker
+      dnf:
+        name:
+          - https://packages.zenetys.com/latest/redhat/8/RPMS/x86_64/haproxy28z+quic-2.8.9-1.el8.zenetys.x86_64.rpm
+          - nginx
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        disable_gpg_check: true
+
+    - name: start docker
+      systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: start modsecurity-spoe docker container
+      docker_container:
+        name: modsecurity_spoa
+        image: quay.io/jcmoraisjr/modsecurity-spoa:v0.13
+        state: started
+        ports:
+          - "12345:12345"
+        detach: true
+
+    - name: template configs
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: '0644'
+      register: configs
+      loop:
+        - src: rsync_haproxy.j2
+          dest: /etc/rsyslog.d/49-haproxy.conf
+        - src: nginx.j2
+          dest: /etc/nginx/nginx.conf
+        - src: spoe_modsecurity.j2
+          dest: /etc/haproxy/spoe-modsecurity.conf
+        - src: haproxy.j2
+          dest: /etc/haproxy/haproxy.cfg
+
+    - name: restart and enable services if config changed
+      systemd:
+        name: "{{ item }}"
+        state: restarted
+        enabled: true
+      when: configs.changed
+      loop:
+        - nginx
+        - rsyslog
+        - haproxy
