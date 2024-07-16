@@ -1,11 +1,14 @@
 # Temp haproxy waf
 
-Automatically configures an alma8 box to install box to install:  
+Automatically configures an alma8 box to install box to install:
 
  * Docker
  * Haproxy 2.8
  * [Modsecurity-spoa](https://github.com/jcmoraisjr/modsecurity-spoa) 0.13
  * Nginx
+
+## Ansible
+Run `vagrant up` to deploy the box, then Ansible automatically configures and installs the tooling.
 
 ## Layout
 
