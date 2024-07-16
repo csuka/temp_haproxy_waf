@@ -20,6 +20,6 @@ If the request is valid the request is send through nginx, if not, a 403 is give
 ## Usage
 
 Logs for haproxy are written to `/var/log/haproxy.log`.  
-Logs for modsecurity, use `docker ps` ; docker logs <container id>.  
+Logs for modsecurity, use `docker ps` ; 'docker logs <container id>'.  
 To provide a test for the waf, use curl 'http://localhost:80/?foo=/etc/passwd&bar=/bin/sh'
 
