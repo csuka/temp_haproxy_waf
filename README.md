@@ -1,4 +1,4 @@
-# Temp haproxy waf
+# Haproxy WAF test setup
 
 Automatically configures an alma8 box to install box to install:
 
